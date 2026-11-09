@@ -5,17 +5,79 @@ namespace App\Http\Controllers;
 use App\Enums\AnomalyType;
 use App\Enums\CaseStatus;
 use App\Enums\RiskLevel;
+use App\Http\Requests\StoreManualAnomalyRequest;
 use App\Models\FraudAlert;
 use App\Services\AuditLogService;
 use App\Services\FraudAlertPresenter;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class AnomalyController extends Controller
 {
+    public function create(): Response
+    {
+        return Inertia::render('anomalies/create', [
+            'types' => collect(AnomalyType::cases())->map(fn (AnomalyType $type): array => [
+                'value' => $type->value,
+                'label' => $type->label(),
+            ])->all(),
+            'risks' => collect(RiskLevel::cases())->map(fn (RiskLevel $risk): array => [
+                'value' => $risk->value,
+                'label' => $risk->label(),
+            ])->all(),
+        ]);
+    }
+
+    public function store(
+        StoreManualAnomalyRequest $request,
+        AuditLogService $auditLog,
+    ): RedirectResponse {
+        $data = $request->validated();
+        $userId = (int) $request->user()->getAuthIdentifier();
+
+        $alert = DB::transaction(function () use ($data, $userId, $auditLog): FraudAlert {
+            $alert = FraudAlert::query()->create([
+                'npwp' => $data['npwp'],
+                'jenis_anomali' => $data['type'],
+                'masa_pajak' => $data['month'],
+                'tahun_pajak' => $data['year'],
+                'tingkat_risiko' => $data['risk'],
+                'status_tindak_lanjut' => 'BARU',
+                'keterangan' => json_encode([
+                    'summary' => $data['summary'],
+                    'source' => 'manual',
+                ], JSON_THROW_ON_ERROR),
+            ]);
+
+            $alert->workflow()->create([
+                'status' => CaseStatus::WaitingReview->value,
+            ]);
+
+            $auditLog->record(
+                $userId,
+                'anomaly.manual_created',
+                'fraud_alert',
+                (string) $alert->getKey(),
+                [
+                    'type' => $data['type'],
+                    'risk' => $data['risk'],
+                    'period' => sprintf('%04d-%02d', $data['year'], $data['month']),
+                ],
+            );
+
+            return $alert;
+        });
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Anomali berhasil ditambahkan.']);
+
+        return redirect()->route('anomalies.index');
+    }
+
     public function index(
         Request $request,
         FraudAlertPresenter $presenter,

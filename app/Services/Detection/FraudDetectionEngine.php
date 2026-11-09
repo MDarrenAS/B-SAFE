@@ -11,6 +11,7 @@ use App\Services\Detection\Rules\EmploymentMisclassificationRule;
 use App\Services\Detection\Rules\FictitiousMutationRule;
 use App\Services\Detection\Rules\PdukRule;
 use App\Services\Detection\Rules\UnderReportingWageRule;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
 class FraudDetectionEngine
@@ -60,6 +61,10 @@ class FraudDetectionEngine
                         ->where('tahun_pajak', $draft->year)
                         ->where('masa_pajak', $draft->month)
                         ->whereNull('nik')
+                        ->where(function (Builder $query): void {
+                            $query->whereNull('keterangan')
+                                ->orWhere('keterangan', 'not like', '%"source":"manual"%');
+                        })
                         ->lockForUpdate()
                         ->first();
 

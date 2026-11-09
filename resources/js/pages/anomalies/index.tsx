@@ -6,7 +6,10 @@ import {
 } from '@/components/bsafe/anomaly-table';
 import { PageHeader } from '@/components/bsafe/page-header';
 import { Button } from '@/components/ui/button';
-import { index as anomaliesIndex } from '@/routes/anomalies';
+import {
+    create as createAnomaly,
+    index as anomaliesIndex,
+} from '@/routes/anomalies';
 import { dashboard } from '@/routes';
 
 type Props = {
@@ -42,6 +45,13 @@ export default function AnomaliesIndex({ anomalies, filters, types }: Props) {
                 <PageHeader
                     title="Pusat Anomali"
                     description="Cari dan saring temuan lintas instansi untuk ditinjau lebih lanjut."
+                    actions={
+                        <Button asChild>
+                            <Link href={createAnomaly()}>
+                                Tambah Anomali
+                            </Link>
+                        </Button>
+                    }
                 />
 
                 <form
