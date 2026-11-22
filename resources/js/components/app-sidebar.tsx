@@ -6,7 +6,6 @@ import {
     FolderGit2,
     LayoutGrid,
     MapPinned,
-    UserRound,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
@@ -24,7 +23,6 @@ import {
 import { dashboard } from '@/routes';
 import { index as anomaliesIndex } from '@/routes/anomalies';
 import { index as auditPriorityIndex } from '@/routes/audit-priority';
-import { show as accountShow } from '@/routes/account';
 import { index as riskMapIndex } from '@/routes/risk-map';
 import type { NavItem } from '@/types';
 
@@ -48,11 +46,6 @@ const mainNavItems: NavItem[] = [
         title: 'Risiko Wilayah',
         href: riskMapIndex(),
         icon: MapPinned,
-    },
-    {
-        title: 'Akun dan Aktivitas',
-        href: accountShow(),
-        icon: UserRound,
     },
 ];
 

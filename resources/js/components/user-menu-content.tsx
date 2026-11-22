@@ -1,5 +1,5 @@
 import { Link, router } from '@inertiajs/react';
-import { LogOut, Settings } from 'lucide-react';
+import { Activity, LogOut, Settings } from 'lucide-react';
 import {
     DropdownMenuGroup,
     DropdownMenuItem,
@@ -9,14 +9,16 @@ import {
 import { UserInfo } from '@/components/user-info';
 import { useMobileNavigation } from '@/hooks/use-mobile-navigation';
 import { logout } from '@/routes';
+import { show as accountShow } from '@/routes/account';
 import { edit } from '@/routes/profile';
 import type { User } from '@/types';
 
 type Props = {
     user: User;
+    showAccountActivity?: boolean;
 };
 
-export function UserMenuContent({ user }: Props) {
+export function UserMenuContent({ user, showAccountActivity = false }: Props) {
     const cleanup = useMobileNavigation();
 
     const handleLogout = () => {
@@ -33,6 +35,19 @@ export function UserMenuContent({ user }: Props) {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
+                {showAccountActivity && (
+                    <DropdownMenuItem asChild>
+                        <Link
+                            className="block w-full cursor-pointer"
+                            href={accountShow()}
+                            prefetch
+                            onClick={cleanup}
+                        >
+                            <Activity className="mr-2" />
+                            Akun dan Aktivitas
+                        </Link>
+                    </DropdownMenuItem>
+                )}
                 <DropdownMenuItem asChild>
                     <Link
                         className="block w-full cursor-pointer"
