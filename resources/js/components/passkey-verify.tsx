@@ -15,6 +15,8 @@ type Props = {
     label?: string;
     loadingLabel?: string;
     separator?: string;
+    buttonClassName?: string;
+    separatorClassName?: string;
 };
 
 export default function PasskeyVerify({
@@ -22,6 +24,8 @@ export default function PasskeyVerify({
     label,
     loadingLabel,
     separator,
+    buttonClassName,
+    separatorClassName,
 }: Props = {}) {
     const { verify, isLoading, error, isSupported } = usePasskeyVerify({
         ...(routes && {
@@ -45,11 +49,15 @@ export default function PasskeyVerify({
                 <Button
                     type="button"
                     variant="outline"
-                    className="w-full"
+                    className={`w-full ${buttonClassName ?? ''}`}
                     onClick={verify}
                     disabled={isLoading}
                 >
-                    {isLoading ? <Spinner /> : <KeyRound className="h-4 w-4" />}
+                    {isLoading ? (
+                        <Spinner />
+                    ) : (
+                        <KeyRound className="h-4 w-4 text-emerald-700" />
+                    )}
                     {isLoading
                         ? (loadingLabel ?? 'Authenticating...')
                         : (label ?? 'Sign in with a passkey')}
@@ -64,7 +72,9 @@ export default function PasskeyVerify({
                     <Separator className="w-full" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">
+                    <span
+                        className={`bg-background px-2 text-muted-foreground ${separatorClassName ?? ''}`}
+                    >
                         {separator ?? 'Or continue with email'}
                     </span>
                 </div>
