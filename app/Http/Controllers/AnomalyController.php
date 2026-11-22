@@ -157,9 +157,15 @@ class AnomalyController extends Controller
             ],
         );
 
+        $anomalies = $query->paginate(15)->withQueryString();
+        $listContext = [
+            ...$filters,
+            'page' => $anomalies->currentPage(),
+        ];
+
         return Inertia::render('anomalies/index', [
-            'anomalies' => $query->paginate(15)->withQueryString()
-                ->through(fn (FraudAlert $alert): array => $presenter->present($alert)),
+            'anomalies' => $anomalies
+                ->through(fn (FraudAlert $alert): array => $presenter->present($alert, $listContext)),
             'filters' => [
                 'q' => $filters['q'] ?? '',
                 'type' => $filters['type'] ?? '',

@@ -58,6 +58,11 @@ class WarningLetterController extends Controller
             return $warningLetter;
         });
 
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => 'Draf surat peringatan dibuat dan belum dikirim.',
+        ]);
+
         return to_route('warning-letters.show', $warningLetter);
     }
 

@@ -20,6 +20,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/anomalies', [AnomalyController::class, 'index'])->name('anomalies.index');
     Route::get('/anomalies/create', [AnomalyController::class, 'create'])->name('anomalies.create');
     Route::post('/anomalies', [AnomalyController::class, 'store'])->name('anomalies.store');
+    Route::get('/companies/{company}/cases/{fraudAlert}', [CompanyController::class, 'showCase'])
+        ->name('companies.cases.show');
     Route::get('/companies/{company}', [CompanyController::class, 'show'])->name('companies.show');
     Route::get('/audit-priority', [AuditPriorityController::class, 'index'])->name('audit-priority.index');
     Route::get('/risk-map', [RiskMapController::class, 'index'])->name('risk-map.index');
@@ -37,6 +39,8 @@ Route::middleware(['auth'])->group(function () {
         ->name('warning-letters.show');
     Route::get('/reports/{fraudAlert}', [InvestigationReportController::class, 'show'])
         ->name('reports.show');
+    Route::get('/reports/{fraudAlert}/pdf', [InvestigationReportController::class, 'download'])
+        ->name('reports.pdf');
 });
 
 require __DIR__.'/settings.php';

@@ -16,7 +16,7 @@ class FraudAlertPresenter
     /**
      * @return array<string, mixed>
      */
-    public function present(FraudAlert $alert): array
+    public function present(FraudAlert $alert, array $listContext = []): array
     {
         $alert->loadMissing(['company', 'workflow']);
         $type = AnomalyType::tryFrom((string) $alert->jenis_anomali);
@@ -24,10 +24,19 @@ class FraudAlertPresenter
         $status = $this->statusFor($alert);
         $evidence = $this->masking->evidence($alert->keterangan);
         $summary = $evidence['summary'] ?? null;
+        $company = $this->companyData($alert->company);
+
+        if ($alert->company !== null) {
+            $company['detailUrl'] = route('companies.cases.show', [
+                'company' => trim((string) $alert->company->getRouteKey()),
+                'fraudAlert' => $alert->getKey(),
+                ...$listContext,
+            ]);
+        }
 
         return [
             'id' => $alert->id,
-            'company' => $this->companyData($alert->company),
+            'company' => $company,
             'type' => $type?->value ?? $alert->jenis_anomali,
             'typeLabel' => $type?->label() ?? 'Anomali lainnya',
             'risk' => $risk?->value ?? 'RENDAH',
@@ -110,8 +119,11 @@ class FraudAlertPresenter
             'title' => $followUp->title,
             'notes' => $this->masking->text((string) $followUp->notes),
             'actor' => $followUp->user?->name ?? 'Sistem',
+            'previousStatusLabel' => $followUp->previous_status === null
+                ? null
+                : CaseStatus::tryFrom($followUp->previous_status)?->label(),
             'statusLabel' => $status?->label(),
-            'createdAt' => $followUp->created_at?->toDateTimeString(),
+            'createdAt' => $followUp->created_at?->toIso8601String(),
         ];
     }
 }
