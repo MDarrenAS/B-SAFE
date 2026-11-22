@@ -1,5 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import { Activity, Building2, CircleAlert, ShieldCheck } from 'lucide-react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { MetricCard } from '@/components/bsafe/metric-card';
 import { PageHeader } from '@/components/bsafe/page-header';
 import { Button } from '@/components/ui/button';
@@ -7,9 +8,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { index as anomaliesIndex } from '@/routes/anomalies';
 import { dashboard } from '@/routes';
 
+const IndonesiaCaseMap = lazy(
+    () => import('@/components/bsafe/indonesia-case-map'),
+);
+
 type Props = {
     filters: { period: string };
     periods: string[];
+    caseCountsByProvince: Array<{ province: string; caseCount: number }>;
     summary: {
         totalCompanies: number;
         anomalyCompanies: number;
@@ -27,9 +33,16 @@ type Props = {
 export default function Dashboard({
     filters,
     periods,
+    caseCountsByProvince,
     summary,
     dataSource,
 }: Props) {
+    const [mapReady, setMapReady] = useState(false);
+
+    useEffect(() => {
+        setMapReady(true);
+    }, []);
+
     const largestTypeCount = Math.max(
         1,
         ...summary.anomaliesByType.map((item) => item.count),
@@ -120,6 +133,63 @@ export default function Dashboard({
                         icon={Activity}
                     />
                 </section>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Kasus anomali per provinsi</CardTitle>
+                        <p className="text-sm text-muted-foreground">
+                            Arahkan kursor atau pilih provinsi untuk melihat
+                            jumlah kasus pada periode yang dipilih.
+                        </p>
+                    </CardHeader>
+                    <CardContent>
+                        {mapReady ? (
+                            <Suspense
+                                fallback={
+                                    <div
+                                        className="flex h-[360px] items-center justify-center rounded-lg bg-muted text-sm text-muted-foreground sm:h-[460px]"
+                                        role="status"
+                                    >
+                                        Memuat peta...
+                                    </div>
+                                }
+                            >
+                                <IndonesiaCaseMap
+                                    caseCountsByProvince={caseCountsByProvince}
+                                />
+                            </Suspense>
+                        ) : (
+                            <div
+                                className="flex h-[360px] items-center justify-center rounded-lg bg-muted text-sm text-muted-foreground sm:h-[460px]"
+                                role="status"
+                            >
+                                Memuat peta...
+                            </div>
+                        )}
+                        <p className="mt-3 text-xs text-muted-foreground">
+                            Batas wilayah: map data dari{' '}
+                            <a
+                                href="https://github.com/denyherianto/indonesia-geojson-topojson-maps-with-38-provinces"
+                                target="_blank"
+                                rel="noreferrer"
+                                className="underline underline-offset-2"
+                            >
+                                Indonesia GeoJSON &amp; TopoJSON Maps (38
+                                Provinces)
+                            </a>{' '}
+                            oleh Deny Herianto, berlisensi{' '}
+                            <a
+                                href="https://creativecommons.org/licenses/by/4.0/"
+                                target="_blank"
+                                rel="noreferrer"
+                                className="underline underline-offset-2"
+                            >
+                                CC BY 4.0
+                            </a>
+                            .
+                        </p>
+                    </CardContent>
+                </Card>
 
                 <section className="grid gap-4 xl:grid-cols-2">
                     <Card>

@@ -29,6 +29,22 @@ class DashboardController extends Controller
             ->where('status_aktif', 'AKTIF')
             ->whereIn('npwp', (clone $query)->select('npwp')->distinct())
             ->count();
+        $caseCountsByProvince = (clone $query)
+            ->join('kemnaker_perusahaan as company', 'company.npwp', '=', 'fraud_alert.npwp')
+            ->where('company.status_aktif', 'AKTIF')
+            ->whereNotNull('company.provinsi')
+            ->where('company.provinsi', '<>', '')
+            ->select('company.provinsi as province')
+            ->selectRaw('COUNT(*) AS case_count')
+            ->groupBy('company.provinsi')
+            ->orderBy('company.provinsi')
+            ->get()
+            ->map(fn (object $row): array => [
+                'province' => trim((string) $row->province),
+                'caseCount' => (int) $row->case_count,
+            ])
+            ->values()
+            ->all();
         $riskRows = (clone $query)
             ->select('tingkat_risiko')
             ->selectRaw('COUNT(DISTINCT npwp) AS company_count')
@@ -74,6 +90,7 @@ class DashboardController extends Controller
         return Inertia::render('dashboard', [
             'filters' => ['period' => $filters['period'] ?? ''],
             'periods' => $periods,
+            'caseCountsByProvince' => $caseCountsByProvince,
             'summary' => [
                 'totalCompanies' => $totalCompanies,
                 'anomalyCompanies' => $anomalyCompanies,
