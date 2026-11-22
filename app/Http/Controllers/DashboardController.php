@@ -4,10 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Enums\AnomalyType;
 use App\Enums\RiskLevel;
-use App\Models\Company;
 use App\Models\FraudAlert;
 use App\Services\AuditLogService;
+use Illuminate\Database\Query\JoinClause;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -18,52 +19,67 @@ class DashboardController extends Controller
         $filters = $request->validate([
             'period' => ['nullable', 'regex:/^\d{4}-(0[1-9]|1[0-2])$/'],
         ]);
+        $period = isset($filters['period'])
+            ? array_map('intval', explode('-', $filters['period']))
+            : null;
         $query = FraudAlert::query();
 
-        if (isset($filters['period'])) {
-            [$year, $month] = array_map('intval', explode('-', $filters['period']));
-            $query->where('tahun_pajak', $year)->where('masa_pajak', $month);
+        if ($period !== null) {
+            $query->where('tahun_pajak', $period[0])->where('masa_pajak', $period[1]);
         }
 
-        $anomalyCompanies = Company::query()
-            ->where('status_aktif', 'AKTIF')
-            ->whereIn('npwp', (clone $query)->select('npwp')->distinct())
-            ->count();
-        $caseCountsByProvince = (clone $query)
-            ->join('kemnaker_perusahaan as company', 'company.npwp', '=', 'fraud_alert.npwp')
+        $companyMetrics = DB::table('kemnaker_perusahaan as company')
+            ->leftJoin('fraud_alert as alert', function (JoinClause $join) use ($period): void {
+                $join->on('alert.npwp', '=', 'company.npwp');
+
+                if ($period !== null) {
+                    $join->where('alert.tahun_pajak', $period[0])
+                        ->where('alert.masa_pajak', $period[1]);
+                }
+            })
             ->where('company.status_aktif', 'AKTIF')
-            ->whereNotNull('company.provinsi')
-            ->where('company.provinsi', '<>', '')
             ->select('company.provinsi as province')
-            ->selectRaw('COUNT(*) AS case_count')
+            ->selectRaw('COUNT(DISTINCT company.npwp) AS company_count')
+            ->selectRaw(
+                'COUNT(DISTINCT CASE WHEN alert.id IS NOT NULL THEN company.npwp END) AS anomaly_company_count',
+            )
+            ->selectRaw('COUNT(alert.id) AS case_count')
             ->groupBy('company.provinsi')
             ->orderBy('company.provinsi')
-            ->get()
+            ->get();
+        $totalCompanies = (int) $companyMetrics->sum('company_count');
+        $anomalyCompanies = (int) $companyMetrics->sum('anomaly_company_count');
+        $caseCountsByProvince = $companyMetrics
+            ->filter(fn (object $row): bool => trim((string) $row->province) !== '')
             ->map(fn (object $row): array => [
                 'province' => trim((string) $row->province),
                 'caseCount' => (int) $row->case_count,
             ])
             ->values()
             ->all();
-        $riskRows = (clone $query)
-            ->select('tingkat_risiko')
-            ->selectRaw('COUNT(DISTINCT npwp) AS company_count')
+
+        $riskAggregates = (clone $query)
+            ->selectRaw("'risk' AS aggregate_type, tingkat_risiko AS category, COUNT(DISTINCT npwp) AS aggregate_count")
             ->groupBy('tingkat_risiko')
-            ->get()
-            ->mapWithKeys(fn (object $row): array => [
-                (string) $row->tingkat_risiko => (int) $row->company_count,
-            ])
-            ->all();
-        $typeRows = (clone $query)
-            ->select('jenis_anomali')
-            ->selectRaw('COUNT(*) AS alert_count')
+            ->toBase();
+        $typeAggregates = (clone $query)
+            ->selectRaw("'type' AS aggregate_type, jenis_anomali AS category, COUNT(*) AS aggregate_count")
             ->groupBy('jenis_anomali')
+            ->toBase();
+        $aggregateRows = $riskAggregates
+            ->unionAll($typeAggregates)
             ->get()
+            ->groupBy('aggregate_type');
+        $riskRows = $aggregateRows->get('risk', collect())
             ->mapWithKeys(fn (object $row): array => [
-                (string) $row->jenis_anomali => (int) $row->alert_count,
+                (string) $row->category => (int) $row->aggregate_count,
             ])
             ->all();
-        $totalCompanies = Company::query()->where('status_aktif', 'AKTIF')->count();
+        $typeRows = $aggregateRows->get('type', collect())
+            ->mapWithKeys(fn (object $row): array => [
+                (string) $row->category => (int) $row->aggregate_count,
+            ])
+            ->all();
         $periods = FraudAlert::query()
             ->whereNotNull('tahun_pajak')
             ->whereNotNull('masa_pajak')

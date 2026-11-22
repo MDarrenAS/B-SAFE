@@ -43,6 +43,7 @@ test('dashboard returns filtered fraud alert counts grouped by province', functi
         ['nib' => '1000000000002', 'npwp' => '0000000000000002', 'provinsi' => 'JAWA TIMUR', 'status_aktif' => 'AKTIF'],
         ['nib' => '1000000000003', 'npwp' => '0000000000000003', 'provinsi' => 'JAWA BARAT', 'status_aktif' => 'AKTIF'],
         ['nib' => '1000000000004', 'npwp' => '0000000000000004', 'provinsi' => 'BANTEN', 'status_aktif' => 'TUTUP'],
+        ['nib' => '1000000000005', 'npwp' => '0000000000000005', 'provinsi' => 'JAWA BARAT', 'status_aktif' => 'AKTIF'],
     ]);
 
     DB::table('fraud_alert')->insert([
@@ -70,6 +71,8 @@ test('dashboard returns filtered fraud alert counts grouped by province', functi
             ->where('caseCountsByProvince.1', [
                 'province' => 'JAWA TIMUR',
                 'caseCount' => 3,
-            ]),
+            ])
+            ->where('summary.totalCompanies', 4)
+            ->where('summary.anomalyCompanies', 3),
         );
 });
