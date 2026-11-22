@@ -96,6 +96,23 @@ npm run dev
 
 Open the URL printed by `php artisan serve` in your browser.
 
+Map Component Setup
+To enable the map functionality, install Leaflet and its React wrappers:
+
+```powershell
+npm install leaflet@^1.9.4 react-leaflet@^5.0.0
+npm install --save-dev @types/leaflet@^1.9.22
+```
+
+Note: react-leaflet v5 requires React 19, so the app should already have react and react-dom 19 installed.
+You’ll also need to copy the map component and province GeoJSON file into your project, and import Leaflet’s stylesheet in your app (e.g., in your main app.tsx or the map component itself):
+
+TypeScript
+import 'leaflet/dist/leaflet.css';
+
+The map uses OpenStreetMap tiles, so it needs an internet connection and should retain the map attribution.
+
+
 ## Useful commands
 
 ```powershell
